@@ -1,0 +1,140 @@
+{
+  "version": "1.0",
+  "source": "NPUBench_NeurIPS/qualcomm_exp.pdf (qualcomm_htp_combined_final_report_en, 2026-05-07)",
+  "platforms": {
+    "SM8750": {
+      "label": "Hexagon SM8750 (QNN HTP v79)",
+      "table2": {
+        "Llama-3.2-1B": {
+          "load_s": 0.502,
+          "ttft_s": 0.046,
+          "prefill_tps": 1579.66,
+          "decode_tps": 58.95,
+          "mem_gib": 0.190,
+          "cpu_pct_allcore": 11.31,
+          "bdr_pct_per_h": null,
+          "status": "ok"
+        },
+        "Llama-3.2-3B": {
+          "load_s": 0.884,
+          "ttft_s": 0.088,
+          "prefill_tps": 831.57,
+          "decode_tps": 23.80,
+          "mem_gib": 0.194,
+          "cpu_pct_allcore": 15.07,
+          "bdr_pct_per_h": 26.20,
+          "status": "ok",
+          "thermal_max": "Critical"
+        },
+        "Qwen3-4B": {
+          "load_s": 1.310,
+          "ttft_s": 0.130,
+          "prefill_tps": 594.39,
+          "decode_tps": 19.24,
+          "mem_gib": 0.182,
+          "cpu_pct_allcore": 22.89,
+          "bdr_pct_per_h": null,
+          "status": "FAILED",
+          "failure_reason": "mt-013-kv fell back to unsupported runtime"
+        }
+      },
+      "table3": {
+        "Llama-3.2-1B": {
+          "ttft_t1_to_tk_s": [0.040, 0.126],
+          "decode_t1_to_tk_tps": [52.67, 51.73],
+          "mem_tk_gib": 0.282,
+          "sus_degr": 0.0028,
+          "deploy_score": null,
+          "deployable": true
+        },
+        "Llama-3.2-3B": {
+          "ttft_t1_to_tk_s": [0.081, 0.228],
+          "decode_t1_to_tk_tps": [21.17, 20.86],
+          "mem_tk_gib": 0.217,
+          "sus_degr": 0.0758,
+          "deploy_score": null,
+          "deployable": "true_with_thermal_caveat",
+          "note": "passed sus_degr threshold but reached Severe thermal state"
+        },
+        "Qwen3-4B": {
+          "ttft_t1_to_tk_s": [0.202, 0.832],
+          "decode_t1_to_tk_tps": [14.99, 13.15],
+          "mem_tk_gib": 0.248,
+          "sus_degr": 0.0679,
+          "deploy_score": null,
+          "deployable": false,
+          "failure_reason": "3 cumulative-context samples failed; max thermal state Critical"
+        }
+      }
+    },
+    "SM8850": {
+      "label": "Hexagon SM8850 (Snapdragon 8 Elite Gen 5)",
+      "table2": {
+        "Llama-3.2-1B": {
+          "load_s": 0.465,
+          "ttft_s": 0.045,
+          "prefill_tps": 1693.68,
+          "decode_tps": 68.20,
+          "mem_gib": 0.294,
+          "cpu_pct_allcore": 10.55,
+          "bdr_pct_per_h": null,
+          "status": "ok",
+          "note": "rerun used USB ADB"
+        },
+        "Llama-3.2-3B": {
+          "load_s": 0.785,
+          "ttft_s": 0.076,
+          "prefill_tps": 962.16,
+          "decode_tps": 27.44,
+          "mem_gib": 0.292,
+          "cpu_pct_allcore": 14.20,
+          "bdr_pct_per_h": null,
+          "status": "ok"
+        },
+        "Qwen3-4B": {
+          "load_s": 1.414,
+          "ttft_s": 0.108,
+          "prefill_tps": 713.72,
+          "decode_tps": 22.35,
+          "mem_gib": 0.226,
+          "cpu_pct_allcore": 21.98,
+          "bdr_pct_per_h": null,
+          "status": "FAILED",
+          "failure_reason": "Wi-Fi ADB rerun completed 45/45 but mt-013-kv = runtime-fallback (unsupported runtime)"
+        }
+      },
+      "table3": {
+        "Llama-3.2-1B": {
+          "ttft_t1_to_tk_s": [0.031, 0.103],
+          "decode_t1_to_tk_tps": [62.30, 61.28],
+          "mem_tk_gib": 0.401,
+          "sus_degr": -0.0026,
+          "deploy_score": null,
+          "deployable": true
+        },
+        "Llama-3.2-3B": {
+          "ttft_t1_to_tk_s": [0.068, 0.187],
+          "decode_t1_to_tk_tps": [25.78, 25.38],
+          "mem_tk_gib": 0.230,
+          "sus_degr": 0.0100,
+          "deploy_score": null,
+          "deployable": "true_with_thermal_caveat",
+          "note": "Severe thermal state during run"
+        },
+        "Qwen3-4B": {
+          "deploy_score": null,
+          "deployable": false,
+          "failure_reason": "Android killed the app process during high-temperature cooldown; only 51/105 cumulative-context calls observed"
+        }
+      }
+    }
+  },
+  "battery_diagnostic": {
+    "SM8850_qwen3_only": {
+      "battery_start": 0.68,
+      "battery_end": 0.54,
+      "max_battery_temp_C": 51.1,
+      "max_thermal_state": 4
+    }
+  }
+}

@@ -1,0 +1,101 @@
+# =========================================
+# macOS
+# =========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# =========================================
+# Xcode — user-specific state
+# =========================================
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+UserInterfaceState.xcuserstate
+
+# =========================================
+# Xcode — build & derived data
+# =========================================
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# =========================================
+# Swift Package Manager
+# =========================================
+.build/
+.swiftpm/
+Package.pinned
+# Package.resolved IS committed (deterministic dependency pins)
+
+# =========================================
+# CocoaPods (not used here, kept for safety)
+# =========================================
+Pods/
+*.xcworkspace
+
+# Override: keep the project's xcworkspace metadata (Xcode-generated, not CocoaPods)
+!HAND-Score-iOS/HAND-Score.xcodeproj/project.xcworkspace/
+!HAND-Score-iOS/HAND-Score.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+!HAND-Score-iOS/HAND-Score.xcodeproj/project.xcworkspace/xcshareddata/
+
+# =========================================
+# Signing & provisioning (never commit)
+# =========================================
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.pem
+*.cer
+*.certSigningRequest
+
+# =========================================
+# Python (for scripts/)
+# =========================================
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# =========================================
+# Secrets
+# =========================================
+*.env
+*.env.*
+!*.env.example
+*_secret*
+*-secret*
+*api*key*
+*-key.*
+
+# =========================================
+# Project-specific exclusions
+# =========================================
+# Raw per-call measurement JSONs (~44 MB). The analysis pipeline in
+# samples/results/analysis/ is enough to regenerate the published tables.
+samples/results/raw/
+
+# Work-in-progress analysis intermediates at samples/ root. The committed
+# summaries under samples/results/analysis/ are the canonical aggregates.
+samples/all_models_summary.json
+samples/exp_*.json
+
+# Internal tooling (developer-local)
+.moai/
+.agency/
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
