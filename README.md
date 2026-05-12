@@ -1,8 +1,7 @@
+# HAND-Score
 <p align="center">
   <img src="docs/figure_1.png" alt="HAND-Score: end-to-end benchmark protocol for Apple Neural Engine and Qualcomm Hexagon" width="900">
 </p>
-
-# HAND-Score
 
 Measurement code and dataset for the paper **HAND-Score: The Standard for Evaluating LLMs on Mobile NPUs**. This repository hosts the two on-device benchmark applications that produce the per-call JSON reports aggregated into the four-axis tables of the paper, together with the host-side analysis pipeline that turns those JSONs into the published `deploy_score` values.
 
