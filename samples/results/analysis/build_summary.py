@@ -48,6 +48,27 @@ def parse_ts(s: str) -> dt.datetime:
     return dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
+def discover_models() -> list[str]:
+    names = set(MODELS)
+    if os.path.isdir(RAW_BASE):
+        for entry in os.listdir(RAW_BASE):
+            if os.path.isdir(os.path.join(RAW_BASE, entry)):
+                names.add(entry)
+    return sorted(names)
+
+
+def accelerator_profile(d: dict[str, Any]) -> tuple[str, dict[str, Any]] | tuple[None, None]:
+    if d.get("aneProfile"):
+        return "aneProfile", d["aneProfile"]
+    if d.get("npuProfile"):
+        return "npuProfile", d["npuProfile"]
+    return None, None
+
+
+def profile_count(profile: dict[str, Any], ane_key: str, npu_key: str) -> int:
+    return int(profile.get(ane_key, profile.get(npu_key, 0)) or 0)
+
+
 def analyze_model(model_dir: str) -> dict[str, Any]:
     files = sorted(glob.glob(os.path.join(model_dir, "*.json")))
     by_mode: dict[str, list[Any]] = defaultdict(list)
@@ -176,31 +197,33 @@ def analyze_model(model_dir: str) -> dict[str, Any]:
     # =========== NPU Profile (Exp D) ===========
     npu_profile = None
     if exp_a:
-        ap = exp_a[0][1]["aneProfile"]
-        ane_total = ap["aneOps"]
-        cpu_total = sum(c["cpuOps"] for c in ap["components"])
-        gpu_total = sum(c["gpuOps"] for c in ap["components"])
-        total = ane_total + cpu_total + gpu_total
-        comps = []
-        for c in ap["components"]:
-            comps.append({
-                "name": c["name"],
-                "ane_pct": c["anePercentage"],
-                "ane_ops": c["aneOps"],
-                "cpu_ops": c["cpuOps"],
-                "gpu_ops": c["gpuOps"],
-            })
-        npu_profile = {
-            "ane_pct": ane_total / total * 100 if total else 0,
-            "gpu_pct": gpu_total / total * 100 if total else 0,
-            "cpu_pct": cpu_total / total * 100 if total else 0,
-            "total_ops": total,
-            "ane_ops": ane_total,
-            "cpu_ops": cpu_total,
-            "gpu_ops": gpu_total,
-            "components": comps,
-            "blockers": ap.get("aneBlockers", []),
-        }
+        profile_key, ap = accelerator_profile(exp_a[0][1])
+        if ap:
+            ane_total = profile_count(ap, "aneOps", "npuOps")
+            cpu_total = sum(profile_count(c, "cpuOps", "cpuOps") for c in ap.get("components", []))
+            gpu_total = sum(profile_count(c, "gpuOps", "gpuOps") for c in ap.get("components", []))
+            total = ane_total + cpu_total + gpu_total
+            comps = []
+            for c in ap.get("components", []):
+                comps.append({
+                    "name": c["name"],
+                    "ane_pct": c.get("anePercentage", c.get("npuPercentage", 0)),
+                    "ane_ops": profile_count(c, "aneOps", "npuOps"),
+                    "cpu_ops": profile_count(c, "cpuOps", "cpuOps"),
+                    "gpu_ops": profile_count(c, "gpuOps", "gpuOps"),
+                })
+            npu_profile = {
+                "profile_key": profile_key,
+                "ane_pct": ane_total / total * 100 if total else 0,
+                "gpu_pct": gpu_total / total * 100 if total else 0,
+                "cpu_pct": cpu_total / total * 100 if total else 0,
+                "total_ops": total,
+                "ane_ops": ane_total,
+                "cpu_ops": cpu_total,
+                "gpu_ops": gpu_total,
+                "components": comps,
+                "blockers": ap.get("aneBlockers", ap.get("npuBlockers", [])),
+            }
 
     # =========== deploy_score ===========
     deploy = None
@@ -275,7 +298,7 @@ def main() -> None:
         "ram_gb_assumed": RAM_GB,
         "models": {},
     }
-    for name, _model_id in MODELS.items():
+    for name in discover_models():
         d = analyze_model(os.path.join(RAW_BASE, name))
         out["models"][name] = d
         # 모델별 개별 파일도 저장

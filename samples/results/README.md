@@ -62,7 +62,16 @@ cd samples/results/analysis
 python3 build_summary.py
 ```
 
-raw 폴더의 JSON을 다시 읽어 summary JSON 3개를 새로 생성한다.
+raw 폴더의 JSON을 다시 읽어 summary JSON을 새로 생성한다. Android / Hexagon 앱에서 가져온 결과는 아래처럼 모델별 폴더에 두면 `build_summary.py`가 자동으로 함께 읽는다.
+
+```text
+samples/results/raw/
+├── Gemma3-270m/
+├── Llama-3.2-1B/
+└── Hexagon-Llama-3.2-1B/
+```
+
+분석 스크립트는 iOS의 `aneProfile`과 Android의 `npuProfile`을 모두 지원한다.
 
 ## 디바이스 회수 명령 (참고)
 

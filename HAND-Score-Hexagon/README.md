@@ -1,23 +1,28 @@
 # HAND-Score Hexagon Android Benchmark App
 
-This folder contains the Qualcomm Hexagon Android benchmark scaffold for HAND-Score. It is organized to mirror the iOS app: source code and reproducibility instructions are committed, while device-specific binaries, model weights, APK exports, and Qualcomm runtime artifacts stay outside Git.
+This is the Android / Qualcomm Hexagon source project for HAND-Score. It is committed as a normal Android Studio project, not as a prebuilt APK:
 
-No Git LFS is required for this repository.
+- Gradle project files are committed (`settings.gradle.kts`, `build.gradle.kts`, `app/build.gradle.kts`, Gradle wrapper).
+- Android source and resources live under `app/src/main/`.
+- Build outputs, APKs, Android Studio local state, Qualcomm SDK files, model binaries, and raw result dumps are ignored.
+- No Git LFS setup is required.
+
+The app runs the same HAND-Score protocol used by the iOS project and writes one JSON result file per measured call. The committed backend is a reference Java backend so the UI, dataset loading, result schema, and host aggregation flow can be checked without proprietary Qualcomm artifacts. To reproduce paper numbers, replace `BackendFactory` with a Hexagon/QNN backend that implements `InferenceBackend`.
 
 ---
 
 ## What the app measures
 
-For each model under test, the Hexagon benchmark app should produce per-call JSON reports for the same HAND-Score experiments used by the iOS app.
+For each model under test, the app produces per-call JSON reports for the same HAND-Score experiments used by the iOS app.
 
-| Experiment | Mode in the JSON | Description |
+| Experiment | Mode in JSON | Description |
 |---|---|---|
 | Exp A - Single-shot baseline | `single_turn` | 30 ChatAlpaca prompts (15 Short / 10 Med-Short / 5 Medium) with a 10-second cool-down between calls. |
-| Exp C - Thermal stress | `single_turn` (same prompt repeated 30+ times) | Repeats one sample for `N_round` rounds with no cool-down to compute `sustained_degradation`. |
-| Exp E - Multi-turn cumulative-context | `multi_turn` | 15 ChatAlpaca dialogues (5 x 4 turns, 5 x 5 turns, 5 x 6 turns). The entire chat history is re-prefilled from scratch at every assistant turn. |
-| Exp D - NPU profile | embedded in every JSON | Qualcomm Hexagon runtime profile data should be included in the JSON so the host pipeline can compare per-stage NPU utilization. |
+| Exp C - Thermal stress | `single_turn`, repeated prompt | Repeats the same prompt for 30 rounds with no cool-down so the host script can compute `sustained_degradation`. |
+| Exp E - Multi-turn cumulative context | `multi_turn` | 15 ChatAlpaca dialogues (5 x 4 turns, 5 x 5 turns, 5 x 6 turns). At every assistant turn, the full accumulated chat history is re-prefilled from scratch. |
+| Exp D - NPU profile | `npuProfile` | Backend-provided Hexagon / GPU / CPU op placement profile, aligned with the iOS `aneProfile` structure. |
 
-Per-call metrics should include: `model_load_time`, `TTFT`, `prefill_throughput`, `decode_throughput`, `total_time`, `peak_memory`, `cpu_usage`, `battery_drain_rate`, and the Hexagon NPU profile.
+Per-call metrics include `modelLoadTimeMs`, `ttftMs`, `prefillTokensPerSec`, `decodeTokensPerSec`, `totalTimeMs`, memory snapshots, CPU usage samples, battery state, thermal state, and the backend accelerator profile.
 
 ---
 
@@ -30,7 +35,7 @@ Per-call metrics should include: `model_load_time`, `TTFT`, `prefill_throughput`
 | Android Studio | Stable Android Studio with Android SDK support |
 | Gradle | Use the committed Gradle wrapper (`./gradlew`) |
 | ADB | USB or ADB-over-Wi-Fi for install and result retrieval |
-| Qualcomm artifacts | Keep QNN / Hexagon SDK files, model binaries, and exported APKs local to the developer machine |
+| Qualcomm artifacts | Keep QNN / Hexagon SDK files, model binaries, converted graphs, and signed release APKs local to the developer machine |
 
 ---
 
@@ -43,7 +48,14 @@ HAND-Score-Hexagon/
 │   ├── build.gradle.kts
 │   └── src/main/
 │       ├── AndroidManifest.xml
-│       ├── java/com/handscore/hexagon/MainActivity.java
+│       ├── java/com/handscore/hexagon/
+│       │   ├── MainActivity.java
+│       │   ├── backend/          # InferenceBackend contract + reference backend
+│       │   ├── data/             # ChatAlpaca dataset loader
+│       │   ├── metrics/          # Android battery / memory / CPU / thermal sampling
+│       │   ├── model/            # Benchmark result model pieces
+│       │   ├── protocol/         # Exp A/C/E runner
+│       │   └── results/          # JSON serialization and result storage
 │       └── res/values/
 ├── build.gradle.kts
 ├── gradle/
@@ -53,25 +65,7 @@ HAND-Score-Hexagon/
 └── settings.gradle.kts
 ```
 
-The repository intentionally does not include:
-
-- APKs (`*.apk`, `*.aab`)
-- model weights or converted graphs
-- Qualcomm QNN / Hexagon SDK binaries
-- raw benchmark result dumps
-
-If local binary artifacts are needed while developing, place them under `HAND-Score-Hexagon/artifacts/` or `HAND-Score-Hexagon/prebuilt/`. Those directories are ignored by Git.
-
----
-
-## App metadata
-
-- App name: `HAND-Score`
-- Package: `com.handscore.hexagon`
-- Version: `0.1.0`
-- Version code: `1`
-- Minimum SDK: API 31
-- Target SDK: API 36
+The shared prompt file is copied into Android assets at build time from `../samples/chatalpaca_handscore.json`. This keeps the Android and iOS apps on the same deterministic prompt set.
 
 ---
 
@@ -96,81 +90,92 @@ Install the debug build on a connected Qualcomm device:
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The committed Android module is a source scaffold. It keeps the same package metadata and result schema expected by the host-side HAND-Score pipeline, but it does not commit large or proprietary runtime assets.
-
----
-
-## Local artifacts
-
-Use local-only artifact paths for device-specific pieces:
+The app writes results under the app-specific external files directory:
 
 ```text
-HAND-Score-Hexagon/artifacts/
-├── qnn/            # local Qualcomm runtime files, if needed
-├── models/         # local converted model assets
-└── results/        # local result exports before aggregation
+/sdcard/Android/data/com.handscore.hexagon/files/HAND-Score/<model-name>/*.json
 ```
 
-These paths are ignored by Git so the repository can be pushed to GitHub without Git LFS.
+Retrieve them with:
+
+```bash
+adb pull /sdcard/Android/data/com.handscore.hexagon/files/HAND-Score samples/results/raw
+```
+
+Then regenerate host summaries:
+
+```bash
+cd samples/results/analysis
+python3 build_summary.py
+```
 
 ---
 
-## Retrieving results to the host machine
+## Connecting the Hexagon backend
 
-The Hexagon benchmark should write JSON reports to device storage. A typical retrieval command is:
+The committed `ReferenceBackend` is intentionally not a performance backend. It is only there to verify that the Android project opens, the prompt set loads, the protocol buttons run, JSON files are emitted, and the host pipeline accepts the schema.
 
-```bash
-adb pull /sdcard/Android/data/com.handscore.hexagon/files/HAND-Score /tmp/handscore_results
+For paper reproduction, implement a Qualcomm backend behind this interface:
+
+```java
+public interface InferenceBackend extends AutoCloseable {
+    String name();
+    ModelDescriptor loadModel(BenchmarkOptions options) throws Exception;
+    GenerationResult generate(List<ChatMessage> history, int promptTokensHint, int maxTokens, float temperature) throws Exception;
+    int countTokens(String text);
+    NpuProfile profile() throws Exception;
+    void close();
+}
 ```
 
-The host-side analysis pipeline expects those JSON files to be available locally for aggregation.
+Then update `BackendFactory.create(...)` to return that backend instead of `ReferenceBackend`.
+
+Backend responsibilities:
+
+- Load local model / tokenizer / Hexagon runtime artifacts.
+- Run generation for single-turn prompts and cumulative multi-turn histories.
+- Return exact tokenizer prompt counts and measured TTFT / prefill / decode timings.
+- Return `NpuProfile` with Hexagon NPU, GPU, and CPU op placement counts.
+- Keep all proprietary or large files outside Git, for example under local `artifacts/` or device-local model directories.
+
+---
+
+## Local-only artifacts
+
+The repository intentionally does not include:
+
+- APKs (`*.apk`, `*.aab`)
+- model weights or converted graphs
+- Qualcomm QNN / Hexagon SDK binaries
+- raw benchmark result dumps
+
+If local binary artifacts are needed while developing, place them under `HAND-Score-Hexagon/artifacts/` or `HAND-Score-Hexagon/prebuilt/`. Those directories are ignored by Git.
 
 ---
 
 ## Expected result JSON schema
 
-The Hexagon app should produce JSON output aligned with the iOS benchmark pipeline, with fields such as:
+The Android app writes JSON aligned with the iOS benchmark pipeline:
 
-- `mode`
-- `config.prompt`
-- `performance.*`
+- `config.mode`: `single_turn` or `multi_turn`
+- `performance.modelLoadTimeMs`
+- `performance.ttftMs`
+- `performance.prefillTokens`
+- `performance.prefillTokensPerSec`
+- `performance.decodeTokens`
+- `performance.decodeTokensPerSec`
 - `system.before`
 - `system.after`
-- `timeline`
+- `system.timeline`
 - `npuProfile`
 - `turnResults`
 
-Example structure:
-
-```jsonc
-{
-  "id": "<UUID>",
-  "timestamp": "<ISO-8601>",
-  "device": { "model": "...", "chip": "...", "osVersion": "..." },
-  "model": { "name": "...", "contextLength": 4096, "batchSize": 64 },
-  "config": { "prompt": "...", "mode": "single_turn" },
-  "performance": {
-    "model_load_time": 0,
-    "prefill_throughput": 0,
-    "decode_throughput": 0,
-    "total_time": 0
-  },
-  "system": {
-    "before": {},
-    "after": {},
-    "timeline": []
-  },
-  "npuProfile": {},
-  "turnResults": []
-}
-```
-
-This schema is aligned with the iOS benchmark JSON so the same host-side aggregation workflow can be reused.
+The host analysis script accepts both iOS `aneProfile` and Android `npuProfile` fields.
 
 ---
 
 ## Notes
 
 - The package namespace is de-identified as `com.handscore.hexagon`.
-- Large Android artifacts are intentionally excluded from Git.
 - The shared prompt set is committed at `../samples/chatalpaca_handscore.json` in the repository root.
+- The app keeps the screen awake while a run is active so the manual phase-0 protocol remains comparable with the iOS run.

@@ -8,7 +8,7 @@ Measurement code and dataset for the paper **HAND-Score: The Standard for Evalua
 | Path | Contents |
 |---|---|
 | `HAND-Score-iOS/` | iOS / Apple Neural Engine (ANE) measurement app, written in Swift (target: iPhone 15 Pro or later, iOS 17.4+) |
-| `HAND-Score-Hexagon/` | Android / Qualcomm Hexagon NPU measurement app scaffold, organized like the iOS app without committing APKs, model weights, or Git LFS artifacts |
+| `HAND-Score-Hexagon/` | Android / Qualcomm Hexagon NPU measurement source project, organized like the iOS app without committing APKs, model weights, or Git LFS artifacts |
 | `scripts/` | Dataset preparation (`extract_samples.py`, `analyze_chatalpaca.py`) |
 | `samples/` | Pre-built ChatAlpaca prompt set, summary JSONs, and the host-side aggregation script (`build_summary.py`) |
 
@@ -104,7 +104,7 @@ Full reproduction protocol, JSON schema, and notes on reproducibility live in **
 
 ## Qualcomm Hexagon — `HAND-Score-Hexagon/`
 
-Android / Qualcomm Hexagon measurement app scaffold. App display name on the launcher is **HAND-Score**.
+Android / Qualcomm Hexagon measurement source project. App display name on the launcher is **HAND-Score**.
 
 | Item | Requirement |
 |---|---|
@@ -123,16 +123,18 @@ cd HAND-Score-Hexagon
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The committed Android module is a source scaffold. Like the iOS app, this repository keeps source and reproducibility instructions in Git while leaving large runtime assets outside the repository. No Git LFS setup is required.
+The committed Android module includes the benchmark protocol runner, ChatAlpaca dataset loading, Android system metric collection, result JSON writing, and a backend interface for the Hexagon/QNN runtime. Like the iOS app, this repository keeps source and reproducibility instructions in Git while leaving large runtime assets outside the repository. No Git LFS setup is required.
 
 Local-only Hexagon assets can be staged under `HAND-Score-Hexagon/artifacts/` or `HAND-Score-Hexagon/prebuilt/`; both paths are ignored by Git. Do not commit APKs (`*.apk`, `*.aab`), converted model weights, Qualcomm runtime binaries, or raw benchmark result dumps.
 
+The checked-in `ReferenceBackend` validates the Android project, result schema, and host aggregation flow only. To reproduce paper measurements, implement `InferenceBackend` with the local Qualcomm Hexagon runtime and update `BackendFactory` to return it.
+
 ### Retrieving results to the host machine
 
-The Hexagon benchmark should write JSON reports to device storage. A typical retrieval command is:
+The Hexagon benchmark writes JSON reports to app-specific external storage. A typical retrieval command is:
 
 ```bash
-adb pull /sdcard/Android/data/com.handscore.hexagon/files/HAND-Score /tmp/handscore_results
+adb pull /sdcard/Android/data/com.handscore.hexagon/files/HAND-Score samples/results/raw
 ```
 
 Full Hexagon build notes, JSON schema, and local artifact policy live in **[`HAND-Score-Hexagon/README.md`](HAND-Score-Hexagon/README.md)**.
@@ -183,9 +185,9 @@ hand-score/
 │   │   ├── LICENSE-AnemllCore
 │   │   └── Sources/HandScoreCore/
 │   └── HAND-Score/               # app source (App / Models / Services / ViewModels / Views / Datasets)
-├── HAND-Score-Hexagon/             # Android / Hexagon measurement app scaffold
+├── HAND-Score-Hexagon/             # Android / Hexagon measurement source project
 │   ├── README.md                 # Android-specific build & reproduction guide
-│   ├── app/                      # Android Studio app module
+│   ├── app/                      # Android Studio app module (protocol runner + backend contract)
 │   ├── build.gradle.kts
 │   ├── gradle/
 │   ├── gradle.properties
