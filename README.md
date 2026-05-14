@@ -8,7 +8,7 @@ Measurement code and dataset for the paper **HAND-Score: The Standard for Evalua
 | Path | Contents |
 |---|---|
 | `HAND-Score-iOS/` | iOS / Apple Neural Engine (ANE) measurement app, written in Swift (target: iPhone 15 Pro or later, iOS 17.4+) |
-| `HAND-Score-Hexagon/` | Android / Qualcomm Hexagon NPU measurement app — **placeholder, to be filled in by the Hexagon app maintainer** |
+| `HAND-Score-Hexagon/` | Android / Qualcomm Hexagon NPU measurement app scaffold, organized like the iOS app without committing APKs, model weights, or Git LFS artifacts |
 | `scripts/` | Dataset preparation (`extract_samples.py`, `analyze_chatalpaca.py`) |
 | `samples/` | Pre-built ChatAlpaca prompt set, summary JSONs, and the host-side aggregation script (`build_summary.py`) |
 
@@ -104,27 +104,40 @@ Full reproduction protocol, JSON schema, and notes on reproducibility live in **
 
 ## Qualcomm Hexagon — `HAND-Score-Hexagon/`
 
-> **Placeholder section.** The Android / Qualcomm Hexagon measurement application referenced in the paper's appendix is maintained separately and will be filled into this section by the Hexagon app maintainer. Until then, the items below mark what this section must answer to remain consistent with the iOS app.
+Android / Qualcomm Hexagon measurement app scaffold. App display name on the launcher is **HAND-Score**.
 
-### Requirements
-
-> _TBD by Hexagon app maintainer_ — minimum Android version, supported SoC list (paper reports SM8750 and SM8850), required NDK / Android Studio versions, signing / install prerequisites.
+| Item | Requirement |
+|---|---|
+| Android device | Qualcomm Snapdragon device with Hexagon NPU (paper reports SM8750 / SM8850 family) |
+| Android OS | Android 12 / API 31 or later |
+| Android Studio | Stable Android Studio with Android SDK support |
+| Gradle | Use the committed Gradle wrapper |
+| ADB | USB or ADB-over-Wi-Fi for install and result retrieval |
+| Qualcomm artifacts | Keep QNN / Hexagon SDK files, model binaries, and exported APKs local to the developer machine |
 
 ### Build and run
 
-> _TBD_ — gradle / SDK invocation, how to side-load to a supported Snapdragon device, and the analogue of "set the signing team / press Run".
+```bash
+cd HAND-Score-Hexagon
+./gradlew assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
-### Model catalog
+The committed Android module is a source scaffold. Like the iOS app, this repository keeps source and reproducibility instructions in Git while leaving large runtime assets outside the repository. No Git LFS setup is required.
 
-> _TBD_ — list of HuggingFace repos for the Hexagon-converted model artifacts that correspond one-to-one with the ANE catalog above, plus the conversion options (quantization scheme, context length, prefill batch size) used to match the iOS run.
-
-### Per-call JSON schema
-
-> _TBD_ — must produce the same top-level fields (`mode`, `config.prompt`, `performance.*`, `system.before/after/timeline`, `npuProfile`, `turnResults`) so `samples/results/analysis/build_summary.py` can ingest both platforms with a single code path. Field-by-field deviations from the iOS schema must be documented here.
+Local-only Hexagon assets can be staged under `HAND-Score-Hexagon/artifacts/` or `HAND-Score-Hexagon/prebuilt/`; both paths are ignored by Git. Do not commit APKs (`*.apk`, `*.aab`), converted model weights, Qualcomm runtime binaries, or raw benchmark result dumps.
 
 ### Retrieving results to the host machine
 
-> _TBD_ — `adb pull` (or equivalent) command, target path on the device, and notes on USB / Wi-Fi parity with `xcrun devicectl`.
+The Hexagon benchmark should write JSON reports to device storage. A typical retrieval command is:
+
+```bash
+adb pull /sdcard/Android/data/com.handscore.hexagon/files/HAND-Score /tmp/handscore_results
+```
+
+Full Hexagon build notes, JSON schema, and local artifact policy live in **[`HAND-Score-Hexagon/README.md`](HAND-Score-Hexagon/README.md)**.
+
+This project is de-identified from the original reference wrapper and avoids the original `optai` package namespace while preserving the expected HAND-Score result workflow.
 
 ---
 
@@ -169,9 +182,15 @@ hand-score/
 │   ├── HandScoreCore/            # vendored ANE inference runtime (originally AnemllCore, MIT)
 │   │   ├── LICENSE-AnemllCore
 │   │   └── Sources/HandScoreCore/
-│   └── HAND-Score-iOS/                 # app source (App / Models / Services / ViewModels / Views / Datasets)
-├── HAND-Score-Hexagon/             # Android / Hexagon measurement app — placeholder
-│   └── README.md                 # what the Hexagon app maintainer must fill in
+│   └── HAND-Score/               # app source (App / Models / Services / ViewModels / Views / Datasets)
+├── HAND-Score-Hexagon/             # Android / Hexagon measurement app scaffold
+│   ├── README.md                 # Android-specific build & reproduction guide
+│   ├── app/                      # Android Studio app module
+│   ├── build.gradle.kts
+│   ├── gradle/
+│   ├── gradle.properties
+│   ├── gradlew
+│   └── settings.gradle.kts
 ├── scripts/
 │   ├── extract_samples.py        # builds chatalpaca_handscore.json from robinsmits/ChatAlpaca-20K
 │   └── analyze_chatalpaca.py     # token-length analysis used to choose the 30 + 15 split
@@ -208,4 +227,4 @@ Third-party components:
 - `HAND-Score-iOS/HandScoreCore/Sources/HandScoreCore/*.swift` is derived from [AnemllCore](https://github.com/Anemll/Anemll) (MIT). See [`HAND-Score-iOS/HandScoreCore/LICENSE-AnemllCore`](HAND-Score-iOS/HandScoreCore/LICENSE-AnemllCore).
 - `samples/chatalpaca_handscore.json` is extracted from [robinsmits/ChatAlpaca-20K](https://huggingface.co/datasets/robinsmits/ChatAlpaca-20K) and is redistributed under that dataset's license.
 - Model weights downloaded at runtime through the in-app downloader are subject to the respective model licenses (Gemma Terms of Use, Llama Community License, Qwen license) and are NOT covered by the MIT license of this repository.
-- License terms for the Qualcomm Hexagon app and its model artifacts are to be specified by the Hexagon app maintainer in `HAND-Score-Hexagon/`.
+- Qualcomm Hexagon runtime files, model artifacts, and exported APKs are local developer artifacts and are not committed to this repository.

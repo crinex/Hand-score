@@ -99,3 +99,20 @@ samples/exp_*.json
 .vscode/
 .idea/
 *.swp
+
+# =========================================
+# Android / Gradle
+# =========================================
+HAND-Score-Hexagon/.gradle/
+HAND-Score-Hexagon/**/build/
+HAND-Score-Hexagon/local.properties
+HAND-Score-Hexagon/.externalNativeBuild/
+HAND-Score-Hexagon/.cxx/
+HAND-Score-Hexagon/captures/
+
+# Large Android / Hexagon artifacts are provided locally, not committed.
+HAND-Score-Hexagon/artifacts/
+HAND-Score-Hexagon/prebuilt/
+*.apk
+*.aab
+*.ap_
