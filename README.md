@@ -129,6 +129,8 @@ Local-only Hexagon assets can be staged under `HAND-Score-Hexagon/artifacts/` or
 
 The checked-in `ReferenceBackend` validates the Android project, result schema, and host aggregation flow only. To reproduce paper measurements, implement `InferenceBackend` with the local Qualcomm Hexagon runtime and update `BackendFactory` to return it.
 
+Artifact setup is documented in **[`HAND-Score-Hexagon/ARTIFACTS.md`](HAND-Score-Hexagon/ARTIFACTS.md)**. APKs are built from source; Qualcomm SDK and converted model artifacts are downloaded or generated locally after license acceptance and are not committed to Git.
+
 ### Retrieving results to the host machine
 
 The Hexagon benchmark writes JSON reports to app-specific external storage. A typical retrieval command is:

@@ -109,6 +109,8 @@ cd samples/results/analysis
 python3 build_summary.py
 ```
 
+Artifact download and device-staging details are documented in [`ARTIFACTS.md`](ARTIFACTS.md). In short: build outputs are generated locally, Qualcomm SDK files are downloaded from Qualcomm Developer after license acceptance, and converted model artifacts are kept in ignored local folders or an external release/artifact store.
+
 ---
 
 ## Connecting the Hexagon backend
